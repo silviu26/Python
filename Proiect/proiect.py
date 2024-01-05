@@ -38,6 +38,9 @@ class Table:
         self.poz_piese=[6,6,6,6,6,8,8,8,13,13,13,13,13,24,24,1,1,12,12,12,12,12,17,17,17,19,19,19,19,19]#primele 15- player1/ urm 15- player2, pozitiile o sa fie de la 1 la 24 reprezentand triungiul respectiv, 0 daca e afara si va urma sa il punem pe tabla, -1 daca am ajuns la final pentu piesa noastra
         self.UpdatePozPieseXY()
 
+        self.piesa_aleasa=None
+        self.pozitii_ultimele_piese=[]
+
     def UpdatePozPieseXY(self):
         self.poz_piese_xy=[]
         for i in range(len(self.poz_piese)):
@@ -64,11 +67,40 @@ class Table:
             if self.poz_piese[i]<13:
                 self.poz_piese_xy.append((self.puncte_triunghiuri[self.poz_piese[i]-1][2][0],self.height_tabla+(self.height_screen-self.height_tabla)//2-self.dim_margini-self.dim_piesa//2-self.dim_piesa*(calc-scad)-(ori)*(self.dim_piesa//2)))
             else:
-                self.poz_piese_xy.append((self.puncte_triunghiuri[self.poz_piese[i]-1][2][0],(self.height_screen-self.height_tabla)//2+self.dim_margini+self.dim_piesa//2+self.dim_piesa*(calc-scad)-(ori)*(self.dim_piesa//2)))
+                self.poz_piese_xy.append((self.puncte_triunghiuri[self.poz_piese[i]-1][2][0],(self.height_screen-self.height_tabla)//2+self.dim_margini+self.dim_piesa//2+self.dim_piesa*(calc-scad)+(ori)*(self.dim_piesa//2)))
     
+    def PiesaCuMutariDisponibile(self,rand,oponent,buton_zar_apasat,piesa,zar1,zar2):
+        if buton_zar_apasat:
+            mutarePosibila=[]
+            if rand==0:
+                if zar1!=None and self.poz_piese[piesa]-zar1>0 and self.poz_piese[15:].count(self.poz_piese[piesa]-zar1)<=1:
+                    mutarePosibila.append(self.poz_piese[piesa]-zar1)
+                if zar2!=None and zar1!=zar2 and self.poz_piese[piesa]-zar2>0 and self.poz_piese[15:].count(self.poz_piese[piesa]-zar2)<=1:
+                    mutarePosibila.append(self.poz_piese[piesa]-zar2)
+            elif rand==1 and oponent==0:
+                if zar1!=None and self.poz_piese[piesa]+zar1<=24 and self.poz_piese[:15].count(self.poz_piese[piesa]+zar1)<=1:
+                    mutarePosibila.append(self.poz_piese[piesa]+zar1)
+                if zar2!=None and zar1!=zar2 and self.poz_piese[piesa]+zar2<=24 and self.poz_piese[:15].count(self.poz_piese[piesa]+zar2)<=1:
+                    mutarePosibila.append(self.poz_piese[piesa]+zar2)
+        
+        return mutarePosibila
 
 
-
+    def PozUltimelePieseCuMutariDisponibile(self,rand,oponent,buton_zar_apasat,zar1,zar2):
+        self.pozitii_ultimele_piese=[]
+        if buton_zar_apasat and self.piesa_aleasa==None:
+            triunghi_ultimele_piese=[]
+            if rand==0:
+                for i in range(14,-1,-1):
+                    if self.poz_piese[i] not in triunghi_ultimele_piese and self.PiesaCuMutariDisponibile(rand,oponent,buton_zar_apasat,i,zar1,zar2)!=[]:
+                        triunghi_ultimele_piese.append(self.poz_piese[i])
+                        self.pozitii_ultimele_piese.append(i)
+            elif rand==1 and oponent==0:
+                for i in range(len(self.poz_piese)-1,14,-1):
+                    if self.poz_piese[i] not in triunghi_ultimele_piese and self.PiesaCuMutariDisponibile(rand,oponent,buton_zar_apasat,i,zar1,zar2)!=[]:
+                        triunghi_ultimele_piese.append(self.poz_piese[i])
+                        self.pozitii_ultimele_piese.append(i)
+            
 
 
 
@@ -122,10 +154,32 @@ class GameGUI:
         pygame.draw.rect(self.screen,(0,0,255),(self.table.poz_right_tabla+self.table.width_tabla,self.height//2+self.zonaZaruri.height_zona_zaruri//2+2,100,30),border_radius=5)
         pygame.draw.rect(self.screen,(0,255,255),(self.table.poz_right_tabla+self.table.width_tabla,self.height//2+self.zonaZaruri.height_zona_zaruri//2+2,100,30),5,5)
 
-    def Draw(self):
+    def DrawPieseDisponibile(self):
+        if self.table.piesa_aleasa==None:
+            for i in self.table.pozitii_ultimele_piese:
+                pygame.draw.circle(self.screen,(0,255,0),self.table.poz_piese_xy[i],self.table.dim_piesa//2)
+                pygame.draw.circle(self.screen,(0,0,0),self.table.poz_piese_xy[i],self.table.dim_piesa//2,2)
+                pygame.draw.circle(self.screen,(0,0,0),self.table.poz_piese_xy[i],self.table.dim_piesa//4,2)
+
+    def DrawPozitiiDisponibilePiesaAleasa(self,rand,oponent):
+        if self.table.piesa_aleasa!=None:
+            pygame.draw.circle(self.screen,(0,255,255),self.table.poz_piese_xy[self.table.piesa_aleasa],self.table.dim_piesa//2)
+            pygame.draw.circle(self.screen,(0,0,0),self.table.poz_piese_xy[self.table.piesa_aleasa],self.table.dim_piesa//2,2)
+            pygame.draw.circle(self.screen,(0,0,0),self.table.poz_piese_xy[self.table.piesa_aleasa],self.table.dim_piesa//4,2)
+            pozitii_disp=self.table.PiesaCuMutariDisponibile(rand,oponent,self.zonaZaruri.button_press,self.table.piesa_aleasa,self.zonaZaruri.zar1,self.zonaZaruri.zar2)
+            for i in pozitii_disp:
+                pygame.draw.circle(self.screen,(0,255,0),self.table.puncte_triunghiuri[i-1][2],self.table.dim_piesa//2)
+                pygame.draw.circle(self.screen,(0,0,0),self.table.puncte_triunghiuri[i-1][2],self.table.dim_piesa//2,2)
+                pygame.draw.circle(self.screen,(0,0,0),self.table.puncte_triunghiuri[i-1][2],self.table.dim_piesa//4,2)
+
+
+
+    def Draw(self,rand,oponent):
         self.screen.blit(self.background_s,(0,0))
         self.DrawTable()
         self.DrawZonaZaruri()
+        self.DrawPieseDisponibile()
+        self.DrawPozitiiDisponibilePiesaAleasa(rand,oponent)
 
 class Game:
     def __init__(self):
@@ -142,12 +196,40 @@ class Game:
         self.oponent=0 #0-uman 1-bot
     
     def VerificaButonApasat(self,event):
-        rect1=pygame.Rect(self.table.poz_right_tabla+self.table.width_tabla,self.height//2+self.zonaZaruri.height_zona_zaruri//2+2,100,30)
-        if rect1.collidepoint(event.pos):
-            self.zonaZaruri.zar1=random.randint(1,6)
-            self.zonaZaruri.zar2=random.randint(1,6)
-            self.zonaZaruri.button_press=True
+        if not self.zonaZaruri.button_press:
+            rect1=pygame.Rect(self.table.poz_right_tabla+self.table.width_tabla,self.height//2+self.zonaZaruri.height_zona_zaruri//2+2,100,30)
+            if rect1.collidepoint(event.pos):
+                self.zonaZaruri.zar1=random.randint(1,6)
+                self.zonaZaruri.zar2=random.randint(1,6)
+                self.zonaZaruri.button_press=True
 
+    def VerificarePiesaApasata(self,event):
+        self.table.PozUltimelePieseCuMutariDisponibile(self.rand,self.oponent,self.zonaZaruri.button_press,self.zonaZaruri.zar1,self.zonaZaruri.zar2)
+        for i in self.table.pozitii_ultimele_piese:
+                cerc=pygame.Rect(self.table.poz_piese_xy[i][0]-self.table.dim_piesa//2,self.table.poz_piese_xy[i][1]-self.table.dim_piesa//2,self.table.dim_piesa,self.table.dim_piesa)
+                if cerc.collidepoint(event.pos):
+                    self.table.piesa_aleasa=i
+                    
+
+    def VerificareApasarePozitiiDisponibilePiesaApasata(self,event):
+        if self.table.piesa_aleasa!=None:
+            pozitii_disp=self.table.PiesaCuMutariDisponibile(self.rand,self.oponent,self.zonaZaruri.button_press,self.table.piesa_aleasa,self.zonaZaruri.zar1,self.zonaZaruri.zar2)
+            for i in pozitii_disp:
+                cerc=pygame.Rect(self.table.puncte_triunghiuri[i-1][2][0]-self.table.dim_piesa//2,self.table.puncte_triunghiuri[i-1][2][1]-self.table.dim_piesa//2,self.table.dim_piesa,self.table.dim_piesa)
+                if cerc.collidepoint(event.pos):
+                    if self.zonaZaruri.zar1!=None and (self.table.poz_piese[self.table.piesa_aleasa]-i==self.zonaZaruri.zar1 or self.table.poz_piese[self.table.piesa_aleasa]-i==0-self.zonaZaruri.zar1):
+                        self.zonaZaruri.zar1=None
+                    elif self.zonaZaruri.zar2!=None and (self.table.poz_piese[self.table.piesa_aleasa]-i==self.zonaZaruri.zar2 or self.table.poz_piese[self.table.piesa_aleasa]-i==0-self.zonaZaruri.zar2):
+                        self.zonaZaruri.zar2=None
+                    if self.zonaZaruri.zar1==None and self.zonaZaruri.zar2==None:
+                        self.zonaZaruri.button_press=False
+                        self.rand=(self.rand+1)%2
+                    self.table.poz_piese[self.table.piesa_aleasa]=i
+                    self.table.UpdatePozPieseXY()
+                    self.table.piesa_aleasa=None
+                    self.table.PozUltimelePieseCuMutariDisponibile(self.rand,self.oponent,self.zonaZaruri.button_press,self.zonaZaruri.zar1,self.zonaZaruri.zar2)
+
+                    
     def Events(self):
         for event in pygame.event.get():
             if event.type==pygame.QUIT:
@@ -156,9 +238,12 @@ class Game:
                 return True
             if event.type==pygame.MOUSEBUTTONDOWN and event.button == 1:
                 self.VerificaButonApasat(event)
+                self.VerificarePiesaApasata(event)
+                self.VerificareApasarePozitiiDisponibilePiesaApasata(event)
+
         return False
     def DrawGame(self):
-        self.gameGui.Draw()
+        self.gameGui.Draw(self.rand,self.oponent)
 
     def Run(self):
         while not self.close_display:
